@@ -1,12 +1,56 @@
-# MakeCode
-built
-node_modules
-yotta_modules
-yotta_targets
-pxt_modules
-.pxt
-_site
-*.db
-*.tgz
-.header.json
-.simstate.json
+```
+# Dependencies
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.ENV
+.ENV.*
+.env
+.env.*
+requirements-local.txt
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Build artifacts
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+.coverage
+htmlcov/
+.coverage.*
+.coverage.xml
+```
