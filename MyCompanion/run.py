@@ -1,155 +1,164 @@
 #!/usr/bin/env python3
 """
-Miku - AI Desktop Companion
-Main entry point integrating PyQt6 GUI with async backend via qasync
-
-Usage:
-    python run.py
-    
-Requirements:
-    - .env file with GROQ_API_KEY
-    - PyQt6, qasync installed
-    - Optional: VTube Studio for avatar display
+Miku AI Companion - Main Entry Point
+Launches the desktop AI assistant with PyQt6 and asyncio integration.
+Optimized for Arch Linux with AMD GPU support.
 """
+
 import sys
 import os
 import asyncio
-import signal
 import logging
 from pathlib import Path
 
-# Setup logging first
+# Add project root to path
+project_root = Path(__file__).parent.absolute()
+sys.path.insert(0, str(project_root))
+
+# Configure logging early
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
     handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('miku.log', encoding='utf-8')
+        logging.StreamHandler(sys.stdout)
     ]
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("Miku.Launcher")
 
+def check_dependencies():
+    """Check if all required dependencies are installed"""
+    missing = []
+    try:
+        import PyQt6
+    except ImportError:
+        missing.append("PyQt6")
+    
+    try:
+        import qasync
+    except ImportError:
+        missing.append("qasync")
+    
+    try:
+        import aiohttp
+    except ImportError:
+        missing.append("aiohttp")
+    
+    try:
+        import dotenv
+    except ImportError:
+        missing.append("python-dotenv")
+    
+    if missing:
+        logger.error(f"Missing dependencies: {', '.join(missing)}")
+        logger.error("Run: pip install -r requirements.txt")
+        return False
+    
+    logger.info("All dependencies checked successfully")
+    return True
 
-def setup_environment():
-    """Setup environment and paths"""
-    # Add project root to path
-    project_root = Path(__file__).parent
-    if str(project_root) not in sys.path:
-        sys.path.insert(0, str(project_root))
+def check_env():
+    """Check if .env file exists and has required keys"""
+    env_path = project_root / ".env"
+    if not env_path.exists():
+        logger.warning(".env file not found. Copy .env.example to .env and configure.")
+        return False
     
-    # Load .env file
-    env_file = project_root / '.env'
-    if env_file.exists():
-        from dotenv import load_dotenv
-        load_dotenv(env_file)
-        logger.info(f"Loaded environment from {env_file}")
-    else:
-        logger.warning(f"No .env file found at {env_file}")
+    from dotenv import load_dotenv
+    load_dotenv(env_path)
     
-    # Create necessary directories
-    dirs = [
-        project_root / 'memory_db',
-        project_root / 'persona/private',
-        project_root / 'logs',
-        project_root / 'temp'
-    ]
-    for dir_path in dirs:
-        dir_path.mkdir(parents=True, exist_ok=True)
+    groq_key = os.getenv("GROQ_API_KEY", "")
+    if not groq_key or groq_key == "gsk_your_groq_api_key_here":
+        logger.warning("GROQ_API_KEY not configured in .env")
+        logger.warning("Get a free key at: https://console.groq.com/keys")
     
-    logger.info("Environment setup complete")
-
+    return True
 
 async def main_async():
     """Main async entry point"""
     logger.info("=" * 60)
-    logger.info("🌸 Starting Miku - AI Desktop Companion")
+    logger.info("Miku AI Companion v1.0.0")
     logger.info("=" * 60)
     
+    # Import config
+    from companion.config import config
+    logger.info("Configuration loaded")
+    
+    # Check API availability
+    preferred_provider = config.get_preferred_provider()
+    logger.info(f"Using AI provider: {preferred_provider.upper()}")
+    
+    # Import and create bot
+    from companion.bot import MikuBot
+    
+    logger.info("Initializing MikuBot...")
+    bot = MikuBot()
+    
+    # Initialize all systems
+    logger.info("Loading personality...")
+    await bot.initialize_persona()
+    
+    logger.info("Initializing memory system...")
+    await bot.initialize_memory()
+    
+    logger.info("Initializing TTS engine...")
+    await bot.initialize_tts()
+    
+    logger.info("Initializing vision system...")
+    await bot.initialize_vision()
+    
+    logger.info("Initializing desktop widget...")
+    await bot.initialize_desktop()
+    
+    logger.info("Starting dashboard server...")
+    await bot.start_dashboard()
+    
+    # Start the main bot loop
+    logger.info("=" * 60)
+    logger.info("🌸 MIKU AI COMPANION READY 🌸")
+    logger.info("=" * 60)
+    logger.info("Use the chat widget to talk to Miku")
+    logger.info("Press Ctrl+C to exit")
+    
     try:
-        # Import after environment setup
-        from companion.config import Config
-        from companion.bot import initialize_orchestrator
-        from qasync import QAsyncApplication
-        
-        # Load configuration
-        config = Config()
-        
-        # Validate required config
-        if not config.GROQ_API_KEY:
-            logger.error("""
-❗ CRITICAL: No GROQ_API_KEY found!
-
-To get your FREE Groq API key:
-1. Visit: https://console.groq.com/keys
-2. Sign up for free account
-3. Create a new API key
-4. Add to .env file: GROQ_API_KEY=your_key_here
-
-Miku will start in limited demo mode without API key.
-""")
-        
-        # Create Qt application with async integration
-        app = QAsyncApplication(sys.argv)
-        app.setApplicationName("Miku")
-        app.setOrganizationName("MyCompanion")
-        
-        # Initialize orchestrator
-        orchestrator = initialize_orchestrator(config)
-        await orchestrator.setup()
-        
-        # Show chat widget
-        if orchestrator.chat_widget:
-            orchestrator.chat_widget.show()
-            logger.info("Chat widget displayed (top-right corner)")
-        
-        # Handle shutdown signals
-        def handle_shutdown(signum, frame):
-            logger.info(f"Received signal {signum}, shutting down...")
-            asyncio.create_task(orchestrator.shutdown())
-            app.quit()
-        
-        signal.signal(signal.SIGINT, handle_shutdown)
-        signal.signal(signal.SIGTERM, handle_shutdown)
-        
-        # Start background tasks
-        run_task = asyncio.create_task(orchestrator.run())
-        
-        logger.info("""
-╔═══════════════════════════════════════════════════════╗
-║          🌸 Miku is now running!                      ║
-╠═══════════════════════════════════════════════════════╣
-║ • Chat widget: Top-right corner of screen            ║
-║ • Type messages and press Enter to chat              ║
-║ • Double-click tray icon to show/hide                ║
-║ • Press Ctrl+C to quit                               ║
-╚═══════════════════════════════════════════════════════╝
-""")
-        
-        # Run event loop (integrates Qt and asyncio)
-        await run_task
-        
+        await bot.run()
     except KeyboardInterrupt:
-        logger.info("Interrupted by user")
-    except Exception as e:
-        logger.error(f"Fatal error: {e}", exc_info=True)
-        raise
+        logger.info("Shutdown signal received")
     finally:
-        logger.info("Miku shutdown complete")
-
+        logger.info("Cleaning up...")
+        await bot.shutdown()
+        logger.info("Goodbye!")
 
 def main():
-    """Main entry point"""
+    """Main entry point with qasync integration"""
+    # Check dependencies
+    if not check_dependencies():
+        sys.exit(1)
+    
+    # Check environment
+    check_env()
+    
+    # Try to import qasync for Qt-asyncio integration
     try:
-        # Setup environment
-        setup_environment()
+        from qasync import QAsyncApplication, async_run
+        from PyQt6.QtWidgets import QApplication
+        
+        # Create Qt application
+        app = QAsyncApplication(sys.argv)
+        app.setApplicationName("Miku AI Companion")
+        app.setOrganizationName("MikuProject")
         
         # Run async main
-        asyncio.run(main_async())
+        async_run(main_async())
         
-    except Exception as e:
-        logger.error(f"Startup failed: {e}", exc_info=True)
-        sys.exit(1)
-
+    except ImportError as e:
+        logger.warning(f"qasync not available, using pure asyncio: {e}")
+        logger.warning("Desktop widget features may be limited")
+        
+        # Fallback to pure asyncio
+        try:
+            asyncio.run(main_async())
+        except KeyboardInterrupt:
+            pass
 
 if __name__ == "__main__":
     main()
