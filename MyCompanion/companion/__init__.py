@@ -8,11 +8,9 @@ __version__ = "1.0.0"
 __author__ = "Miku Developer"
 __description__ = "Desktop AI Companion with emotions, memory, and desktop interaction"
 
-from .config import config, Config, EmotionType, TTSVoicePreset
+from .config import get_config as config, Config
 
 __all__ = [
     "config",
     "Config",
-    "EmotionType",
-    "TTSVoicePreset",
 ]

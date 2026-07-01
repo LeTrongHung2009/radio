@@ -450,7 +450,7 @@ DEFAULT_COMPLEX_EMOTIONS = {
         components={BasicEmotion.TRUST: 0.5, BasicEmotion.SADNESS: 0.3, BasicEmotion.JOY: 0.2},
         threshold=0.3,
     ),
-    ComplexEmotion.FRustrATION: ComplexEmotionState(
+    ComplexEmotion.FRUSTRATION: ComplexEmotionState(
         components={BasicEmotion.ANGER: 0.5, BasicEmotion.SADNESS: 0.3, BasicEmotion.FEAR: 0.2},
         threshold=0.35,
     ),

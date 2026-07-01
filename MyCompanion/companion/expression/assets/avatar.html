@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Miku Avatar</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            background: transparent;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #39C5BB;
+            font-size: 24px;
+            text-align: center;
+        }
+        
+        .loading-dots:after {
+            content: '.';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60% { content: '...'; }
+            80%, 100% { content: ''; }
+        }
+        
+        #debug-info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #39C5BB;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <div id="loading">Loading Miku<span class="loading-dots"></span></div>
+        <canvas id="avatar-canvas"></canvas>
+        <div id="debug-info">
+            FPS: <span id="fps">0</span><br>
+            State: <span id="state">idle</span><br>
+            Emotion: <span id="emotion">neutral</span>
+        </div>
+    </div>
+    
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        // ============================================
+        // Miku Avatar Renderer
+        // ============================================
+        
+        let scene, camera, renderer, avatar;
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let lastFpsUpdate = 0;
+        let currentState = 'idle';
+        let currentEmotion = 'neutral';
+        
+        // Avatar placeholder (will be replaced with actual model)
+        let mouthMesh, eyesMesh;
+        let mouthOpenness = 0;
+        let blinkState = { blinking: false, progress: 0, nextBlink: Date.now() + 3000 };
+        
+        // Initialize Three.js scene
+        function init() {
+            const container = document.getElementById('canvas-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = null; // Transparent
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                45,
+                width / height,
+                0.1,
+                1000
+            );
+            camera.position.set(0, 1.6, 3);
+            camera.lookAt(0, 1.5, 0);
+            
+            // Renderer with alpha for transparency
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: document.getElementById('avatar-canvas'),
+                alpha: true,
+                antialias: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 7);
+            scene.add(directionalLight);
+            
+            const fillLight = new THREE.DirectionalLight(0x39C5BB, 0.3);
+            fillLight.position.set(-5, 5, -5);
+            scene.add(fillLight);
+            
+            // Create placeholder avatar (simple geometry until VRM loaded)
+            createPlaceholderAvatar();
+            
+            // Hide loading message
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('debug-info').style.display = 'block';
+            }, 1500);
+            
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize);
+            
+            // Start animation loop
+            animate();
+            
+            console.log('🌸 Miku Avatar initialized!');
+        }
+        
+        // Create a simple placeholder avatar
+        function createPlaceholderAvatar() {
+            avatar = new THREE.Group();
+            
+            // Head (sphere)
+            const headGeometry = new THREE.SphereGeometry(0.3, 32, 32);
+            const headMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0xFFE4D6,
+                transparent: true,
+                opacity: 0.9
+            });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 1.6;
+            avatar.add(head);
+            
+            // Hair (multiple cones for stylized look)
+            const hairMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x39C5BB,
+                transparent: true,
+                opacity: 0.95
+            });
+            
+            // Main hair
+            const hairGeo = new THREE.ConeGeometry(0.35, 0.4, 32);
+            const hair = new THREE.Mesh(hairGeo, hairMaterial);
+            hair.position.y = 1.85;
+            hair.rotation.x = -0.2;
+            avatar.add(hair);
+            
+            // Twin tails
+            const tailGeo = new THREE.ConeGeometry(0.12, 0.8, 16);
+            
+            const leftTail = new THREE.Mesh(tailGeo, hairMaterial);
+            leftTail.position.set(-0.4, 1.5, -0.2);
+            leftTail.rotation.z = 0.5;
+            leftTail.rotation.x = -0.3;
+            avatar.add(leftTail);
+            
+            const rightTail = new THREE.Mesh(tailGeo, hairMaterial);
+            rightTail.position.set(0.4, 1.5, -0.2);
+            rightTail.rotation.z = -0.5;
+            rightTail.rotation.x = -0.3;
+            avatar.add(rightTail);
+            
+            // Eyes (simple spheres)
+            const eyeGeometry = new THREE.SphereGeometry(0.04, 16, 16);
+            const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0x00AAFF });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.12, 1.65, 0.25);
+            avatar.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.12, 1.65, 0.25);
+            avatar.add(rightEye);
+            
+            eyesMesh = { left: leftEye, right: rightEye };
+            
+            // Mouth (torus segment that can scale for lip sync)
+            const mouthGeometry = new THREE.TorusGeometry(0.06, 0.015, 8, 16, Math.PI);
+            const mouthMaterial = new THREE.MeshLambertMaterial({ color: 0xFF6B9D });
+            mouthMesh = new THREE.Mesh(mouthGeometry, mouthMaterial);
+            mouthMesh.position.set(0, 1.5, 0.28);
+            mouthMesh.rotation.x = Math.PI;
+            avatar.add(mouthMesh);
+            
+            scene.add(avatar);
+        }
+        
+        // Window resize handler
+        function onWindowResize() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+        
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+            
+            // Update FPS counter
+            frameCount++;
+            if (currentTime - lastFpsUpdate >= 1000) {
+                document.getElementById('fps').textContent = frameCount;
+                frameCount = 0;
+                lastFpsUpdate = currentTime;
+            }
+            
+            // Idle breathing animation
+            if (currentState === 'idle' || currentState === 'listening') {
+                avatar.position.y = Math.sin(currentTime * 0.001) * 0.02;
+                avatar.rotation.y = Math.sin(currentTime * 0.0005) * 0.05;
+            }
+            
+            // Blinking logic
+            updateBlinking(deltaTime);
+            
+            // Lip sync (mouth movement based on speaking state)
+            if (currentState === 'speaking') {
+                // Simulate mouth movement
+                mouthOpenness = (Math.sin(currentTime * 0.015) + 1) * 0.5;
+                mouthMesh.scale.y = 0.3 + mouthOpenness * 1.5;
+            } else {
+                mouthMesh.scale.y = 1;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Blinking system
+        function updateBlinking(deltaTime) {
+            if (blinkState.blinking) {
+                blinkState.progress += deltaTime * 5; // Blink speed
+                
+                if (blinkState.progress >= 1) {
+                    blinkState.blinking = false;
+                    blinkState.progress = 0;
+                    // Schedule next blink
+                    blinkState.nextBlink = Date.now() + 2000 + Math.random() * 4000;
+                }
+                
+                // Close/open eyes
+                const blinkProgress = Math.sin(blinkState.progress * Math.PI);
+                eyesMesh.left.scale.y = 1 - blinkProgress * 0.9;
+                eyesMesh.right.scale.y = 1 - blinkProgress * 0.9;
+            } else if (Date.now() > blinkState.nextBlink && currentState !== 'speaking') {
+                blinkState.blinking = true;
+            }
+        }
+        
+        // ============================================
+        // WebSocket Communication with Python
+        // ============================================
+        
+        let ws = null;
+        
+        function connectWebSocket() {
+            const wsUrl = `ws://${window.location.hostname}:8765`;
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log('Connected to Miku backend');
+                setState('connected');
+            };
+            
+            ws.onclose = () => {
+                console.log('Disconnected from backend, reconnecting...');
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+        }
+        
+        function handleWebSocketMessage(data) {
+            switch (data.type) {
+                case 'speak':
+                    setState('speaking');
+                    setEmotion(data.emotion || 'neutral');
+                    break;
+                    
+                case 'stop_speaking':
+                    setState('idle');
+                    break;
+                    
+                case 'listen':
+                    setState('listening');
+                    break;
+                    
+                case 'emotion':
+                    setEmotion(data.emotion);
+                    break;
+                    
+                case 'lip_sync':
+                    if (data.openness !== undefined) {
+                        mouthOpenness = data.openness;
+                    }
+                    break;
+            }
+        }
+        
+        function setState(state) {
+            currentState = state;
+            document.getElementById('state').textContent = state;
+        }
+        
+        function setEmotion(emotion) {
+            currentEmotion = emotion;
+            document.getElementById('emotion').textContent = emotion;
+            
+            // Could add emotion-based animations here
+            switch (emotion) {
+                case 'happy':
+                    avatar.rotation.z = -0.1;
+                    break;
+                case 'sad':
+                    avatar.rotation.z = 0.1;
+                    break;
+                case 'excited':
+                    // Add bounce animation
+                    break;
+                default:
+                    avatar.rotation.z = 0;
+            }
+        }
+        
+        // ============================================
+        // Start Application
+        // ============================================
+        
+        window.addEventListener('load', () => {
+            init();
+            connectWebSocket();
+        });
+    </script>
+</body>
+</html>

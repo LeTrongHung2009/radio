@@ -66,7 +66,7 @@ class Config(BaseSettings):
     tts_output_dir: str = Field(default="./voices", description="Directory for TTS audio output")
     
     # Anime-style voice presets
-    ANIME_VOICES = {
+    ANIME_VOICES: dict = {
         "nanami": "ja-JP-NanamiNeural",      # Warm, friendly female
         "aoi": "ja-JP-AoiNeural",            # Young, energetic female
         "misaki": "ja-JP-MisakiNeural",      # Mature female
