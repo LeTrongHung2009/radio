@@ -1,1 +1,1 @@
-"""Miku AI Companion - module"""
+"""Senses package - Vision capture, STT pipeline, context reader."""

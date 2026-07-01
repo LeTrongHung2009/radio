@@ -1,1 +1,1 @@
-"""Miku AI Companion - module"""
+"""Expression package - VTube Studio connector and expression mapping."""
