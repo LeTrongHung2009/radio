@@ -165,10 +165,22 @@ class BotOrchestrator:
                 
                 logger.info(f"Response: {response['text'][:100]}...")
             else:
-                logger.warning("AI response failed")
+                error_detail = response.get('error', 'unknown')
+                logger.warning(f"AI response failed: {error_detail}")
+                
+                # Still deliver the fallback text to the user
+                if response.get('text'):
+                    await self.tts_handler.speak(
+                        text=response['text'],
+                        emotion=response.get('emotion', 'neutral'),
+                        priority=False
+                    )
+                    if self.chat_widget and not is_voice:
+                        self.chat_widget.add_response(response['text'])
+                        self.chat_widget.set_typing_indicator(False)
                 
         except Exception as e:
-            logger.error(f"Message processing error: {e}")
+            logger.error(f"Message processing error: {e}", exc_info=True)
             if self.chat_widget:
                 self.chat_widget.set_typing_indicator(False)
         finally:
@@ -275,18 +287,22 @@ class BotOrchestrator:
     
     async def _health_check(self):
         """Periodic system health monitoring"""
-        stats = self.get_stats()
-        
-        # Log key metrics
-        logger.info(
-            f"Health check: {stats['messages_processed']} msgs, "
-            f"{stats['uptime_minutes']:.1f}min uptime, "
-            f"API: {stats['api_status']}"
-        )
-        
-        # Check for issues
-        if stats['groq_stats'].get('current_rpm', 0) >= 28:
-            logger.warning("Approaching API rate limit!")
+        try:
+            stats = self.get_stats()
+            
+            # Log key metrics
+            logger.info(
+                f"Health check: {stats['messages_processed']} msgs, "
+                f"{stats['uptime_minutes']:.1f}min uptime, "
+                f"API: {stats['api_status']}"
+            )
+            
+            # Check for issues
+            groq_stats = stats.get('groq_stats')
+            if groq_stats and groq_stats.get('current_rpm', 0) >= 28:
+                logger.warning("Approaching API rate limit!")
+        except Exception as e:
+            logger.error(f"Health check failed: {e}", exc_info=True)
     
     async def shutdown(self):
         """Graceful shutdown"""

@@ -259,7 +259,8 @@ class GroqClient:
                 'emotion': 'concerned',
                 'tokens_used': 0,
                 'model': 'error',
-                'cached': False
+                'cached': False,
+                'error': str(e)
             }
     
     def get_stats(self) -> Dict[str, Any]:

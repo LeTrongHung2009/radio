@@ -121,7 +121,15 @@ class EventBus:
 
         if tasks:
             # Chạy song song nhưng có giới hạn để không nghẽn hệ thống
-            await asyncio.gather(*tasks, return_exceptions=True)
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    handler_name = tasks[i].__qualname__ if hasattr(tasks[i], '__qualname__') else str(tasks[i])
+                    logger.error(
+                        f"Error in event handler for '{event.type}' "
+                        f"(handler: {handler_name}): {result}",
+                        exc_info=result
+                    )
 
 # Singleton instance
 event_bus = EventBus()

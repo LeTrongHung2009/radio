@@ -192,7 +192,7 @@ class TTSHandler:
             logger.debug(f"Spoke {len(text)} chars with emotion={emotion}, voice={voice}")
             
         except Exception as e:
-            logger.error(f"TTS generation error: {e}")
+            logger.error(f"TTS generation error: {e}", exc_info=True)
     
     def _create_ssml(self, text: str, profile: Dict[str, str]) -> str:
         """
@@ -292,8 +292,10 @@ class TTSHandler:
         try:
             import pygame
             pygame.mixer.music.stop()
-        except:
+        except ImportError:
             pass
+        except Exception as e:
+            logger.debug(f"Could not stop pygame mixer: {e}")
         
         logger.debug("Speech stopped")
     

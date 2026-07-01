@@ -14,16 +14,15 @@ import logging
 from typing import Dict, Any, Optional
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
 try:
     from aiohttp import web
     import socketio
     AIOHTTP_AVAILABLE = True
 except ImportError:
     AIOHTTP_AVAILABLE = False
-    logger = logging.getLogger(__name__)
     logger.warning("aiohttp or python-socketio not installed. Web dashboard disabled.")
-
-logger = logging.getLogger(__name__)
 
 
 class WebConfigurator:
