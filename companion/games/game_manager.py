@@ -13,6 +13,8 @@ from datetime import datetime
 from ..config import get_config
 from .game_state import GameState, GameEvent, GameEventType
 from core.event_bus import EventBus
+from companion.utils.async_helpers import invoke_method
+from companion.utils.singleton import singletons
 
 logger = logging.getLogger(__name__)
 
@@ -58,11 +60,7 @@ class GameAgentManager:
             self.game_states[game_id] = state
             
             # Start the agent
-            if hasattr(agent, 'start'):
-                if asyncio.iscoroutinefunction(agent.start):
-                    await agent.start()
-                else:
-                    agent.start()
+            await invoke_method(agent, 'start')
                     
             self.active_game = game_id
             logger.info(f"Started game: {game_id}")
@@ -88,11 +86,7 @@ class GameAgentManager:
         
         try:
             # Stop the agent
-            if hasattr(agent, 'stop'):
-                if asyncio.iscoroutinefunction(agent.stop):
-                    await agent.stop()
-                else:
-                    agent.stop()
+            await invoke_method(agent, 'stop')
                     
             # Update state
             if game_id in self.game_states:
@@ -117,11 +111,8 @@ class GameAgentManager:
         self.game_states[game_id].is_paused = True
         
         agent = self.agents.get(game_id)
-        if agent and hasattr(agent, 'pause'):
-            if asyncio.iscoroutinefunction(agent.pause):
-                await agent.pause()
-            else:
-                agent.pause()
+        if agent:
+            await invoke_method(agent, 'pause')
                 
         await self.event_bus.publish('game_paused', {'game_id': game_id})
         
@@ -133,11 +124,8 @@ class GameAgentManager:
         self.game_states[game_id].is_paused = False
         
         agent = self.agents.get(game_id)
-        if agent and hasattr(agent, 'resume'):
-            if asyncio.iscoroutinefunction(agent.resume):
-                await agent.resume()
-            else:
-                agent.resume()
+        if agent:
+            await invoke_method(agent, 'resume')
                 
         await self.event_bus.publish('game_resumed', {'game_id': game_id})
         
@@ -209,13 +197,6 @@ class GameAgentManager:
         return len(self.agents)
 
 
-# Singleton instance
-_game_manager: Optional[GameAgentManager] = None
-
-
 def get_game_agent_manager() -> GameAgentManager:
     """Get or create the singleton game agent manager."""
-    global _game_manager
-    if _game_manager is None:
-        _game_manager = GameAgentManager()
-    return _game_manager
+    return singletons.get_or_create(GameAgentManager)

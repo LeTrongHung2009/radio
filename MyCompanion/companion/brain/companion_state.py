@@ -18,6 +18,9 @@ from datetime import datetime
 from typing import Dict, List, Optional, Callable, Any
 from enum import Enum
 
+from companion.utils.serialization import dataclass_to_dict
+from companion.utils.singleton import singletons
+
 logger = logging.getLogger(__name__)
 
 
@@ -41,13 +44,9 @@ class ConversationTurn:
     metadata: Dict[str, Any] = field(default_factory=dict)
     
     def to_dict(self) -> dict:
-        return {
-            "timestamp": self.timestamp,
-            "speaker": self.speaker,
-            "text": self.text,
-            "emotion": self.emotion,
-            "metadata": self.metadata,
-        }
+        return dataclass_to_dict(self, [
+            'timestamp', 'speaker', 'text', 'emotion', 'metadata',
+        ])
 
 
 @dataclass
@@ -93,15 +92,13 @@ class SignalEmitter:
     
     async def emit_async(self, signal_name: str, *args, **kwargs):
         """Emit a signal asynchronously."""
-        if signal_name in self._signals:
-            for callback in self._signals[signal_name]:
-                try:
-                    if asyncio.iscoroutinefunction(callback):
-                        await callback(*args, **kwargs)
-                    else:
-                        callback(*args, **kwargs)
-                except Exception as e:
-                    logger.error(f"Error in async signal callback for {signal_name}: {e}")
+        from companion.utils.async_helpers import dispatch_handlers
+        handlers = self._signals.get(signal_name, [])
+        await dispatch_handlers(
+            handlers, *args,
+            error_label=f"signal callback for {signal_name}",
+            **kwargs,
+        )
 
 
 class CompanionState(SignalEmitter):
@@ -454,20 +451,12 @@ class CompanionState(SignalEmitter):
 # GLOBAL STATE INSTANCE
 # =============================================================================
 
-# Global state instance (lazy-loaded)
-_global_state: Optional[CompanionState] = None
-
-
 def get_state() -> CompanionState:
     """Get or create the global state instance."""
-    global _global_state
-    if _global_state is None:
-        _global_state = CompanionState()
-    return _global_state
+    return singletons.get_or_create(CompanionState)
 
 
 def reset_state():
     """Reset the global state instance."""
-    global _global_state
-    _global_state = CompanionState()
+    singletons.create(CompanionState)
     logger.info("Global state reset")

@@ -14,6 +14,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
+from companion.utils.singleton import singletons
 
 logger = logging.getLogger("Miku.DreamSystem")
 
@@ -471,10 +472,11 @@ class DreamSystem:
             "idle_duration": time.time() - self.idle_start_time if self.idle_start_time else 0
         }
 
-# Singleton instance
-dream_system = None
+def get_dream_system() -> DreamSystem:
+    """Get global dream system instance"""
+    return singletons.get_or_raise(DreamSystem)
 
-def initialize_dream_system(memory_system, emotion_engine):
-    global dream_system
-    dream_system = DreamSystem(memory_system, emotion_engine)
-    return dream_system
+
+def initialize_dream_system(memory_system, emotion_engine) -> DreamSystem:
+    """Initialize global dream system"""
+    return singletons.create(DreamSystem, memory_system, emotion_engine)

@@ -9,6 +9,7 @@ from typing import Optional, List, Dict, Any
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass, asdict
+from companion.utils.singleton import singletons
 
 logger = logging.getLogger(__name__)
 
@@ -244,13 +245,6 @@ class MemoryManager:
         }
 
 
-# Singleton instance
-_memory_manager: Optional[MemoryManager] = None
-
-
 def get_memory_manager() -> MemoryManager:
     """Get global memory manager"""
-    global _memory_manager
-    if _memory_manager is None:
-        raise RuntimeError("Memory manager not initialized!")
-    return _memory_manager
+    return singletons.get_or_raise(MemoryManager)

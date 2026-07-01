@@ -10,6 +10,8 @@ from datetime import datetime
 from enum import Enum, auto
 from typing import Optional, Any
 
+from companion.utils.serialization import dataclass_to_dict
+
 
 class GameEventType(Enum):
     """Types of game events."""
@@ -100,24 +102,12 @@ class GameState:
     
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
-        return {
-            'game_id': self.game_id,
-            'game_name': self.game_name,
-            'is_active': self.is_active,
-            'is_paused': self.is_paused,
-            'current_location': self.current_location,
-            'current_objective': self.current_objective,
-            'inventory': self.inventory,
-            'stats': self.stats,
-            'last_action': self.last_action.name if self.last_action else None,
-            'last_action_time': self.last_action_time.isoformat() if self.last_action_time else None,
-            'session_start': self.session_start.isoformat() if self.session_start else None,
-            'party': self.party,
-            'badges': self.badges,
-            'chess_board': self.chess_board,
-            'chess_opponent': self.chess_opponent,
-            'chess_eval': self.chess_eval,
-        }
+        return dataclass_to_dict(self, [
+            'game_id', 'game_name', 'is_active', 'is_paused',
+            'current_location', 'current_objective', 'inventory', 'stats',
+            'last_action', 'last_action_time', 'session_start',
+            'party', 'badges', 'chess_board', 'chess_opponent', 'chess_eval',
+        ])
         
     @property
     def playtime_seconds(self) -> int:
@@ -146,9 +136,6 @@ class GameEvent:
     data: dict[str, Any] = field(default_factory=dict)
     
     def to_dict(self) -> dict:
-        return {
-            'event_type': self.event_type.name,
-            'game_id': self.game_id,
-            'timestamp': self.timestamp.isoformat(),
-            'data': self.data,
-        }
+        return dataclass_to_dict(self, [
+            'event_type', 'game_id', 'timestamp', 'data',
+        ])

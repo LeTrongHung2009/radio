@@ -10,6 +10,7 @@ from typing import Optional, Dict, Any
 from datetime import datetime
 
 from companion.config import Config
+from companion.utils.singleton import singletons
 from companion.brain.companion_state import CompanionState
 from companion.brain.ai_core import AICore
 from companion.persona.emotion_engine import EmotionEngine
@@ -359,20 +360,11 @@ class BotOrchestrator:
             logger.info(f"Proactive behavior: {'ON' if self.ai_core.is_proactive_enabled else 'OFF'}")
 
 
-# Singleton instance
-_orchestrator: Optional[BotOrchestrator] = None
-
-
 def get_orchestrator() -> BotOrchestrator:
     """Get global orchestrator instance"""
-    global _orchestrator
-    if _orchestrator is None:
-        raise RuntimeError("Orchestrator not initialized!")
-    return _orchestrator
+    return singletons.get_or_raise(BotOrchestrator)
 
 
 def initialize_orchestrator(config: Config) -> BotOrchestrator:
     """Initialize global orchestrator"""
-    global _orchestrator
-    _orchestrator = BotOrchestrator(config)
-    return _orchestrator
+    return singletons.create(BotOrchestrator, config)

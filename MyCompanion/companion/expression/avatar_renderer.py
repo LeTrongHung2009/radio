@@ -14,6 +14,8 @@ import logging
 from typing import Optional, Dict, Any
 from pathlib import Path
 
+from companion.utils.singleton import singletons
+
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QApplication
 from PyQt6.QtCore import Qt, QUrl, pyqtSignal, QTimer
 from PyQt6.QtGui import QSurfaceFormat
@@ -260,20 +262,11 @@ class AvatarRenderer(QWidget):
             await self.ws_server.wait_closed()
 
 
-# Singleton instance
-_avatar_renderer: Optional[AvatarRenderer] = None
-
-
 def get_avatar_renderer() -> AvatarRenderer:
     """Get global avatar renderer instance"""
-    global _avatar_renderer
-    if _avatar_renderer is None:
-        raise RuntimeError("AvatarRenderer not initialized!")
-    return _avatar_renderer
+    return singletons.get_or_raise(AvatarRenderer)
 
 
 def initialize_avatar_renderer(parent=None) -> AvatarRenderer:
     """Initialize global avatar renderer"""
-    global _avatar_renderer
-    _avatar_renderer = AvatarRenderer(parent)
-    return _avatar_renderer
+    return singletons.create(AvatarRenderer, parent)

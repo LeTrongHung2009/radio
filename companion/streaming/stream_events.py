@@ -11,6 +11,7 @@ from enum import Enum, auto
 from typing import Optional, Any
 
 from .chat_message import ChatMessage, ChatUser, ChatPlatform
+from companion.utils.serialization import dataclass_to_dict, serialize_value
 
 
 class EventType(Enum):
@@ -83,20 +84,10 @@ class StreamEvent:
     
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
-        result = {
-            'event_type': self.event_type.name,
-            'platform': self.platform.name,
-            'timestamp': self.timestamp.isoformat(),
-            'data': {},
-        }
-        
-        # Serialize data safely
-        for key, value in self.data.items():
-            if isinstance(value, (ChatUser, ChatMessage)):
-                result['data'][key] = value.to_dict()
-            elif isinstance(value, (str, int, float, bool, list, dict)):
-                result['data'][key] = value
-                
+        result = dataclass_to_dict(self, [
+            'event_type', 'platform', 'timestamp',
+        ])
+        result['data'] = serialize_value(self.data)
         return result
 
 
@@ -108,11 +99,9 @@ class RaidData:
     timestamp: datetime
     
     def to_dict(self) -> dict:
-        return {
-            'source_channel': self.source_channel,
-            'viewer_count': self.viewer_count,
-            'timestamp': self.timestamp.isoformat(),
-        }
+        return dataclass_to_dict(self, [
+            'source_channel', 'viewer_count', 'timestamp',
+        ])
 
 
 @dataclass
@@ -126,11 +115,6 @@ class SubscriptionData:
     gift_months: int = 0
     
     def to_dict(self) -> dict:
-        return {
-            'user': self.user.to_dict(),
-            'tier': self.tier,
-            'months': self.months,
-            'is_gift': self.is_gift,
-            'gifter': self.gifter.to_dict() if self.gifter else None,
-            'gift_months': self.gift_months,
-        }
+        return dataclass_to_dict(self, [
+            'user', 'tier', 'months', 'is_gift', 'gifter', 'gift_months',
+        ])
