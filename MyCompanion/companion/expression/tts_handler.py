@@ -263,12 +263,16 @@ class TTSHandler:
             
             system = platform.system()
             if system == 'Windows':
-                subprocess.run(['powershell', '-c', f'(New-Object Media.SoundPlayer "{temp_path}").PlaySync()'], 
-                             capture_output=True)
+                # Pass temp_path as a positional argument to avoid shell injection
+                subprocess.run(
+                    ['powershell', '-NoProfile', '-Command',
+                     '(New-Object Media.SoundPlayer $args[0]).PlaySync()',
+                     temp_path],
+                    capture_output=True)
             elif system == 'Darwin':  # macOS
-                subprocess.run(['afplay', temp_path], capture_output=True)
+                subprocess.run(['afplay', '--', temp_path], capture_output=True)
             else:  # Linux
-                subprocess.run(['aplay', temp_path], capture_output=True)
+                subprocess.run(['aplay', '--', temp_path], capture_output=True)
             
             # Cleanup
             Path(temp_path).unlink(missing_ok=True)

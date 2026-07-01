@@ -105,7 +105,10 @@ class Config(BaseSettings):
     # =========================================================================
     
     dashboard_port: int = Field(default=8080, description="Web dashboard server port")
-    socketio_cors_origins: List[str] = Field(default=["*"], description="Allowed CORS origins for Socket.IO")
+    socketio_cors_origins: List[str] = Field(
+        default=["http://localhost:8080", "http://127.0.0.1:8080"],
+        description="Allowed CORS origins for Socket.IO (avoid ['*'] in production)"
+    )
     
     # =========================================================================
     # VISION SETTINGS
