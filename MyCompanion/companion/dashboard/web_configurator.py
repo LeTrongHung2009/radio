@@ -38,7 +38,17 @@ class WebConfigurator:
     - System health monitoring
     """
     
-    def __init__(self, host: str = "0.0.0.0", port: int = 8080):
+    # Allowlist of config parameters that can be modified via the dashboard
+    ALLOWED_CONFIG_PARAMS = frozenset([
+        'tts_voice', 'tts_rate', 'tts_volume',
+        'screenshot_interval', 'vision_enabled',
+        'widget_opacity', 'widget_always_on_top',
+        'emotion_decay_rate', 'emotion_trigger_threshold',
+        'boredom_threshold_seconds', 'boredom_prompt_enabled',
+        'low_resource_mode', 'log_level', 'debug_mode',
+    ])
+    
+    def __init__(self, host: str = "127.0.0.1", port: int = 8080):
         """
         Initialize Web Configurator
         
@@ -89,9 +99,15 @@ class WebConfigurator:
             return False
         
         try:
-            # Create Socket.IO server
+            # Create Socket.IO server with restricted CORS
+            cors_origins = []
+            if self.config and hasattr(self.config, 'socketio_cors_origins'):
+                cors_origins = self.config.socketio_cors_origins
+            if not cors_origins or cors_origins == ["*"]:
+                cors_origins = [f"http://localhost:{self.port}", f"http://127.0.0.1:{self.port}"]
+            
             self.sio = socketio.AsyncServer(
-                cors_allowed_origins="*",
+                cors_allowed_origins=cors_origins,
                 async_mode='aiohttp'
             )
             
@@ -160,9 +176,22 @@ class WebConfigurator:
         logger.info(f"Client disconnected: {sid}")
     
     async def on_update_parameter(self, sid: str, data: dict):
-        """Handle parameter update request"""
+        """Handle parameter update request.
+        
+        Only allows modification of parameters in the ALLOWED_CONFIG_PARAMS
+        allowlist to prevent arbitrary attribute overwrites (e.g. API keys).
+        """
         param = data.get('parameter')
         value = data.get('value')
+        
+        if not param or not isinstance(param, str):
+            await self.sio.emit('parameter_updated', {
+                'parameter': param,
+                'value': value,
+                'success': False,
+                'error': 'Invalid parameter name'
+            }, room=sid)
+            return
         
         logger.info(f"Parameter update: {param} = {value}")
         
@@ -174,7 +203,7 @@ class WebConfigurator:
                 'success': success
             }, room=sid)
         
-        elif self.config and hasattr(self.config, param):
+        elif self.config and param in self.ALLOWED_CONFIG_PARAMS:
             try:
                 setattr(self.config, param, value)
                 await self.sio.emit('parameter_updated', {
@@ -189,6 +218,13 @@ class WebConfigurator:
                     'success': False,
                     'error': str(e)
                 }, room=sid)
+        else:
+            await self.sio.emit('parameter_updated', {
+                'parameter': param,
+                'value': value,
+                'success': False,
+                'error': f'Parameter {param!r} is not in the allowed configuration list'
+            }, room=sid)
     
     async def on_change_voice(self, sid: str, data: dict):
         """Handle voice change request"""
@@ -386,7 +422,7 @@ def get_web_configurator() -> WebConfigurator:
     return _configurator
 
 
-def initialize_web_configurator(host: str = "0.0.0.0", port: int = 8080) -> WebConfigurator:
+def initialize_web_configurator(host: str = "127.0.0.1", port: int = 8080) -> WebConfigurator:
     """Initialize the global Web Configurator"""
     global _configurator
     _configurator = WebConfigurator(host, port)
