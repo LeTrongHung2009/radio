@@ -184,7 +184,7 @@ class DreamSystem:
             await self._execute_dream_phase(DreamPhase.AWAKENING)
             
         except Exception as e:
-            logger.error(f"Dream sequence interrupted: {e}")
+            logger.error(f"Dream sequence interrupted: {e}", exc_info=True)
         finally:
             self.is_dreaming = False
             if self.current_dream_session:

@@ -107,35 +107,48 @@ class AICore:
                 force_json=True
             )
             
-            # Update emotion based on response
-            emotion_code = response.get('emotion', 'neutral')
-            self.emotion_engine.set_primary_emotion(emotion_code)
-            
-            # Store in memory
-            await self.memory_manager.add_turn(
-                user_message=user_message,
-                ai_response=response['text'],
-                emotion=emotion_code,
-                context=self.screen_context
-            )
-            
-            self.total_responses += 1
-            
-            result = {
-                'text': response['text'],
-                'emotion': emotion_code,
-                'success': True,
-                'tokens_used': response.get('tokens_used', 0),
-                'cached': response.get('cached', False)
-            }
+            # Check if the API call failed
+            if response.get('error'):
+                logger.warning(f"AI response degraded due to API error: {response['error']}")
+                result = {
+                    'text': response['text'],
+                    'emotion': response.get('emotion', 'concerned'),
+                    'success': False,
+                    'tokens_used': 0,
+                    'cached': False,
+                    'error': response['error']
+                }
+            else:
+                # Update emotion based on response
+                emotion_code = response.get('emotion', 'neutral')
+                self.emotion_engine.set_primary_emotion(emotion_code)
+                
+                # Store in memory
+                await self.memory_manager.add_turn(
+                    user_message=user_message,
+                    ai_response=response['text'],
+                    emotion=emotion_code,
+                    context=self.screen_context
+                )
+                
+                self.total_responses += 1
+                
+                result = {
+                    'text': response['text'],
+                    'emotion': emotion_code,
+                    'success': True,
+                    'tokens_used': response.get('tokens_used', 0),
+                    'cached': response.get('cached', False)
+                }
         else:
             # Fallback without API
             result = {
                 'text': self._generate_fallback_response(user_message),
                 'emotion': 'neutral',
-                'success': True,
+                'success': False,
                 'tokens_used': 0,
-                'cached': False
+                'cached': False,
+                'error': 'no_api_client'
             }
         
         self.state.set_status('idle')
@@ -207,8 +220,10 @@ class AICore:
             import pyautogui
             # Note: pyautogui doesn't directly give window info, but we can infer from behavior
             contexts.append("User is actively using computer")
-        except:
-            pass
+        except ImportError:
+            logger.debug("pyautogui not available for active window detection")
+        except Exception as e:
+            logger.debug(f"Active window detection failed: {e}")
         
         # Check running processes for common apps
         try:
@@ -219,13 +234,15 @@ class AICore:
                     name = proc.info['name'].lower()
                     if any(game in name for game in ['steam', 'epic', 'discord', 'spotify', 'vlc', 'chrome', 'firefox']):
                         running_apps.append(name)
-                except:
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     continue
             
             if running_apps:
                 contexts.append(f"Running: {', '.join(running_apps[:3])}")
-        except:
-            pass
+        except ImportError:
+            logger.debug("psutil not available for process detection")
+        except Exception as e:
+            logger.debug(f"Process detection failed: {e}")
         
         # Check audio playback
         try:
@@ -234,8 +251,10 @@ class AICore:
             now_playing = media.get_now_playing()
             if now_playing:
                 contexts.append(f"Playing: {now_playing}")
-        except:
-            pass
+        except ImportError:
+            logger.debug("MediaWatcher not available")
+        except Exception as e:
+            logger.debug(f"Media playback detection failed: {e}")
         
         return " | ".join(contexts) if contexts else "Desktop idle"
     

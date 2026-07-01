@@ -111,8 +111,9 @@ class MicAgent:
             logger.warning("sounddevice not available, using fallback")
             await self._fallback_listening()
         except Exception as e:
-            logger.error(f"Audio loop error: {e}")
+            logger.error(f"Audio loop error: {e}", exc_info=True)
             if self.is_listening:
+                logger.info("Restarting audio loop after error...")
                 await asyncio.sleep(5)
                 await self._audio_loop()
     

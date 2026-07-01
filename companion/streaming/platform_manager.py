@@ -65,7 +65,10 @@ class ChatPlatformManager:
             tasks.append(self._connect_youtube())
             
         if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for result in results:
+                if isinstance(result, Exception):
+                    logger.error(f"Platform connection failed: {result}", exc_info=result)
             
     async def _connect_twitch(self):
         """Connect to Twitch."""
@@ -100,7 +103,10 @@ class ChatPlatformManager:
             tasks.append(self.youtube_handler.disconnect())
             
         if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for result in results:
+                if isinstance(result, Exception):
+                    logger.error(f"Platform disconnection error: {result}", exc_info=result)
             
         self.connected_platforms.clear()
         logger.info("Disconnected from all platforms")
@@ -164,17 +170,25 @@ class ChatPlatformManager:
     async def broadcast_message(self, message: str):
         """Broadcast a message to all connected platforms."""
         tasks = []
+        platform_names = []
         
         if ChatPlatform.TWITCH in self.connected_platforms and self.twitch_handler:
             tasks.append(
                 self.twitch_handler.send_message(self.config.TWITCH_CHANNEL_TO_JOIN, message)
             )
+            platform_names.append('Twitch')
             
         if ChatPlatform.YOUTUBE in self.connected_platforms and self.youtube_handler:
             tasks.append(self.youtube_handler.send_message(message))
+            platform_names.append('YouTube')
             
         if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    logger.error(
+                        f"Failed to broadcast message to {platform_names[i]}: {result}"
+                    )
             
     async def create_poll(self, platform: ChatPlatform, title: str, choices: list[str], duration: int = 60):
         """Create a poll on a specific platform."""

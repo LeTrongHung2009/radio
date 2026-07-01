@@ -58,7 +58,7 @@ class MediaWatcher:
                             # Found media app
                             # Would need deeper integration to get actual track info
                             return f"{app_name} (active)"
-                except:
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     continue
             
             return None
