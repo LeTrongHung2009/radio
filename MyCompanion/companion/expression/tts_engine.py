@@ -9,8 +9,6 @@ import asyncio
 import logging
 import os
 import shutil
-import subprocess
-import tempfile
 import time
 from typing import Optional
 
@@ -36,7 +34,7 @@ class TTSEngine:
     TEMP_DIR = "/tmp/mycompanion_tts"
 
     def __init__(self) -> None:
-        self._mpv_proc: Optional[subprocess.Popen] = None
+        self._async_proc: Optional[asyncio.subprocess.Process] = None
         self._is_speaking = False
         self._has_mpv = shutil.which("mpv") is not None
         self._has_paplay = shutil.which("paplay") is not None
@@ -49,10 +47,9 @@ class TTSEngine:
 
     @property
     def is_speaking(self) -> bool:
-        if self._mpv_proc is not None:
-            ret = self._mpv_proc.poll()
-            if ret is not None:
-                self._mpv_proc = None
+        if self._async_proc is not None:
+            if self._async_proc.returncode is not None:
+                self._async_proc = None
                 self._is_speaking = False
         return self._is_speaking
 
@@ -111,27 +108,29 @@ class TTSEngine:
             return
 
         try:
-            proc = await asyncio.create_subprocess_exec(
+            self._async_proc = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.DEVNULL,
             )
-            await proc.wait()
+            await self._async_proc.wait()
         except Exception:
             logger.exception("Audio playback error")
+        finally:
+            self._async_proc = None
 
     async def stop(self) -> None:
         """Stop current playback if any."""
-        if self._mpv_proc is not None:
+        if self._async_proc is not None:
             try:
-                self._mpv_proc.terminate()
-                self._mpv_proc.wait(timeout=2)
+                self._async_proc.terminate()
+                await asyncio.wait_for(self._async_proc.wait(), timeout=2)
             except Exception:
                 try:
-                    self._mpv_proc.kill()
+                    self._async_proc.kill()
                 except Exception:
                     pass
-            self._mpv_proc = None
+            self._async_proc = None
         self._is_speaking = False
 
     def _cleanup_old_files(self) -> None:

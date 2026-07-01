@@ -57,6 +57,7 @@ class Cortex:
         self._screen_context = ""
         self._window_context = ""
         self._total_responses = 0
+        self._boredom_pending = False
 
     def on_response(self, cb: OnResponseCallback) -> None:
         self._on_response_cbs.append(cb)
@@ -165,6 +166,7 @@ class Cortex:
             await self._tc.ai_stop_speaking()
 
     async def _respond_to_boredom(self, idle_seconds: float) -> None:
+        self._boredom_pending = False
         if self._tc.is_user_active() or self._tc.is_ai_active():
             return
 
@@ -196,11 +198,16 @@ class Cortex:
         while self._running:
             await asyncio.sleep(10.0)
             idle = time.monotonic() - self._last_interaction
-            if idle >= self.BOREDOM_INTERVAL and not self._tc.is_ai_active():
+            if (
+                idle >= self.BOREDOM_INTERVAL
+                and not self._tc.is_ai_active()
+                and not self._boredom_pending
+            ):
                 try:
+                    self._boredom_pending = True
                     self._eq.put_nowait(PrioritizedEvent.boredom(idle))
                 except asyncio.QueueFull:
-                    pass
+                    self._boredom_pending = False
 
     @property
     def stats(self) -> dict:

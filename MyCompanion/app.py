@@ -232,10 +232,13 @@ class Orchestrator:
 
         logger.info("MyCompanion shutdown complete")
 
-    def setup_qt_widget(self, app_instance: "QApplication") -> ChatWidget:
+    def setup_qt_widget(
+        self, app_instance: "QApplication", loop: asyncio.AbstractEventLoop
+    ) -> ChatWidget:
         """Create and wire up the PyQt6 chat widget."""
         from PyQt6.QtCore import QPoint
 
+        self._async_loop = loop
         self._chat_widget = ChatWidget()
 
         screen = app_instance.primaryScreen()
@@ -258,17 +261,13 @@ class Orchestrator:
             self._spatial.on_reposition(on_reposition)
             self._spatial.on_idle_move(on_idle_move)
 
-        # Wire chat input to event queue
+        # Wire chat input to event queue (thread-safe via call_soon_threadsafe)
         def on_chat_send(text: str) -> None:
             event = PrioritizedEvent.text_input(text)
-            try:
-                self._event_queue.put_nowait(event)
-            except asyncio.QueueFull:
-                logger.warning("Event queue full; dropping text input")
+            loop.call_soon_threadsafe(self._event_queue.put_nowait, event)
             self._dream.record_activity()
             if self._spatial:
                 self._spatial.record_user_input()
-            # Add to UI
             self._prompt_engine.add_history("user", text)
 
         self._chat_widget.message_sent.connect(on_chat_send)
@@ -278,34 +277,23 @@ class Orchestrator:
 
 def _run_with_qt() -> None:
     """Run with PyQt6 GUI (default mode)."""
+    import threading
+
     from PyQt6.QtWidgets import QApplication
-    from PyQt6.QtCore import QTimer
 
     qt_app = QApplication(sys.argv)
     qt_app.setApplicationName("MyCompanion")
 
-    orchestrator = Orchestrator()
-    widget = orchestrator.setup_qt_widget(qt_app)
-
+    # Create a dedicated asyncio event loop for the background thread.
+    # The Qt main thread drives only the GUI; the async loop runs
+    # exclusively in the daemon thread — no concurrent run_until_complete.
     loop = asyncio.new_event_loop()
 
-    # Async tick via QTimer
-    timer = QTimer()
+    orchestrator = Orchestrator()
+    widget = orchestrator.setup_qt_widget(qt_app, loop)
 
-    async def tick() -> None:
-        await asyncio.sleep(0)
-
-    def qt_tick() -> None:
-        loop.run_until_complete(tick())
-
-    timer.timeout.connect(qt_tick)
-    timer.start(50)  # 20 Hz
-
-    # Start async subsystems in background
     async def async_main() -> None:
         await orchestrator.run()
-
-    import threading
 
     def run_async_loop() -> None:
         asyncio.set_event_loop(loop)
