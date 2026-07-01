@@ -24,12 +24,9 @@ __all__ = [
     'EventType',
 ]
 
-_platform_manager: ChatPlatformManager | None = None
+from companion.utils.singleton import singletons
 
 
 def get_chat_platform_manager() -> ChatPlatformManager:
     """Get or create the singleton chat platform manager."""
-    global _platform_manager
-    if _platform_manager is None:
-        _platform_manager = ChatPlatformManager()
-    return _platform_manager
+    return singletons.get_or_create(ChatPlatformManager)

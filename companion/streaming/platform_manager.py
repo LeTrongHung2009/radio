@@ -16,6 +16,7 @@ from .stream_events import StreamEvent, EventType
 from .twitch_bot import TwitchBotHandler
 from .youtube_bot import YouTubeBot
 from core.event_bus import EventBus
+from companion.utils.async_helpers import dispatch_handlers
 
 logger = logging.getLogger(__name__)
 
@@ -124,14 +125,10 @@ class ChatPlatformManager:
         logger.debug(f"Received {platform} message from {message.user.username}: {message.content[:50]}...")
         
         # Call registered handlers
-        for handler in self.message_handlers:
-            try:
-                if asyncio.iscoroutinefunction(handler):
-                    await handler(message)
-                else:
-                    handler(message)
-            except Exception as e:
-                logger.error(f"Error in message handler: {e}")
+        await dispatch_handlers(
+            self.message_handlers, message,
+            error_label="message handler",
+        )
                 
     async def _on_stream_event(self, data: dict):
         """Handle stream event."""
@@ -143,14 +140,10 @@ class ChatPlatformManager:
         logger.info(f"Stream event: {event.event_type.name} on {event.platform.name}")
         
         # Call registered handlers
-        for handler in self.event_handlers:
-            try:
-                if asyncio.iscoroutinefunction(handler):
-                    await handler(event)
-                else:
-                    handler(event)
-            except Exception as e:
-                logger.error(f"Error in event handler: {e}")
+        await dispatch_handlers(
+            self.event_handlers, event,
+            error_label="event handler",
+        )
                 
     async def send_message(self, platform: ChatPlatform, channel: str, message: str):
         """Send a message to a specific platform."""

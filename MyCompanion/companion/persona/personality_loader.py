@@ -12,6 +12,7 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
+from companion.utils.singleton import singletons
 
 logger = logging.getLogger(__name__)
 
@@ -321,20 +322,11 @@ class PersonalityLoader:
         return miku_config
 
 
-# Singleton instance
-_loader: Optional[PersonalityLoader] = None
-
-
 def get_personality_loader() -> PersonalityLoader:
     """Get or create the global Personality Loader instance"""
-    global _loader
-    if _loader is None:
-        _loader = PersonalityLoader()
-    return _loader
+    return singletons.get_or_create(PersonalityLoader)
 
 
 def initialize_personality_loader(default_path: str = None) -> PersonalityLoader:
     """Initialize the global Personality Loader"""
-    global _loader
-    _loader = PersonalityLoader(default_path)
-    return _loader
+    return singletons.create(PersonalityLoader, default_path)

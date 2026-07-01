@@ -13,6 +13,7 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from datetime import datetime
+from companion.utils.singleton import singletons
 
 logger = logging.getLogger(__name__)
 
@@ -360,20 +361,11 @@ class IdentityManager:
         return f"IdentityManager({self.get_name()}, trust={self.user_relationship['trust_level']:.2f})"
 
 
-# Singleton instance
-_identity_manager: Optional[IdentityManager] = None
-
-
 def get_identity_manager() -> IdentityManager:
     """Get or create the global Identity Manager instance"""
-    global _identity_manager
-    if _identity_manager is None:
-        _identity_manager = IdentityManager()
-    return _identity_manager
+    return singletons.get_or_create(IdentityManager)
 
 
 def initialize_identity_manager(identity_path: str = None) -> IdentityManager:
     """Initialize the global Identity Manager with custom path"""
-    global _identity_manager
-    _identity_manager = IdentityManager(identity_path)
-    return _identity_manager
+    return singletons.create(IdentityManager, identity_path)

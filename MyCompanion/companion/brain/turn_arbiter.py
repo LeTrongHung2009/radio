@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from enum import Enum, auto
 
 from core.event_bus import Event, event_bus
+from companion.utils.singleton import singletons
 
 logger = logging.getLogger("Miku.TurnArbiter")
 
@@ -304,20 +305,11 @@ class TurnArbiter:
         self._state = TurnState.IDLE
 
 
-# Singleton instance
-_turn_arbiter: Optional[TurnArbiter] = None
-
-
 def get_turn_arbiter() -> TurnArbiter:
     """Get global turn_arbiter instance"""
-    global _turn_arbiter
-    if _turn_arbiter is None:
-        raise RuntimeError("TurnArbiter not initialized!")
-    return _turn_arbiter
+    return singletons.get_or_raise(TurnArbiter)
 
 
 def initialize_turn_arbiter() -> TurnArbiter:
     """Initialize global turn_arbiter"""
-    global _turn_arbiter
-    _turn_arbiter = TurnArbiter()
-    return _turn_arbiter
+    return singletons.create(TurnArbiter)

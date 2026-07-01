@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Optional, List
 from pydantic_settings import BaseSettings
 from pydantic import Field
+from companion.utils.singleton import singletons
 
 
 logger = logging.getLogger(__name__)
@@ -287,20 +288,11 @@ class Config(BaseSettings):
         logger.info("Low resource mode enabled")
 
 
-# Global config instance (lazy-loaded)
-_config: Optional[Config] = None
-
-
 def get_config() -> Config:
     """Get or create the global configuration instance."""
-    global _config
-    if _config is None:
-        _config = Config()
-    return _config
+    return singletons.get_or_create(Config)
 
 
 def reload_config() -> Config:
     """Reload configuration from environment."""
-    global _config
-    _config = Config()
-    return _config
+    return singletons.create(Config)

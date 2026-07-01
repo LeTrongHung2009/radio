@@ -14,6 +14,8 @@ import logging
 from typing import Dict, Any, Optional
 from pathlib import Path
 
+from companion.utils.singleton import singletons
+
 try:
     from aiohttp import web
     import socketio
@@ -374,20 +376,11 @@ class WebConfigurator:
         """
 
 
-# Singleton instance
-_configurator: Optional[WebConfigurator] = None
-
-
 def get_web_configurator() -> WebConfigurator:
     """Get or create the global Web Configurator instance"""
-    global _configurator
-    if _configurator is None:
-        _configurator = WebConfigurator()
-    return _configurator
+    return singletons.get_or_create(WebConfigurator)
 
 
 def initialize_web_configurator(host: str = "0.0.0.0", port: int = 8080) -> WebConfigurator:
     """Initialize the global Web Configurator"""
-    global _configurator
-    _configurator = WebConfigurator(host, port)
-    return _configurator
+    return singletons.create(WebConfigurator, host, port)
