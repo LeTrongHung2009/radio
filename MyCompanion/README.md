@@ -1,130 +1,257 @@
-# 🌸 Miku AI Companion - Desktop Entity
+# MyCompanion - Autonomous AI Desktop Companion
 
-Một trợ lý ảo thông minh, có cảm xúc và khả năng tương tác sâu với máy tính của bạn. Miku không chỉ là một chatbot, cô ấy là một thực thể số sống động trên màn hình desktop của bạn, được xây dựng với kiến trúc hướng sự kiện, cảm xúc 3 tầng và khả năng tự học hỏi.
+An autonomous, interactive AI Desktop Companion framework inspired by [Neuro-sama](https://virtualyoutuber.fandom.com/wiki/Neuro-sama). Lives on your monitor, observes your desktop, listens via microphone, speaks Vietnamese, and acts like a living entity — all optimized for constrained hardware.
 
-![Python Version](https://img.shields.io/badge/Python-3.10+-blue.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
-![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows-orange)
-![Status](https://img.shields.io/badge/Status-Active%20Development-brightgreen)
+**No livestreaming. No VTuber Studio requirement. Pure local desktop companion.**
 
-## ✨ Tính năng nổi bật
+---
 
-### 🧠 Trí tuệ & Cảm xúc (The Soul)
-- **Emotion Engine 3 Tầng**: 8 cảm xúc cơ bản, 16+ cảm xúc phức tạp và trí tuệ cảm xúc (EQ).
-- **Internal Monologue**: Miku suy nghĩ nội tâm trước khi phản hồi, tạo nên sự chân thực.
-- **Dream System**: Xử lý ký ức và "mơ" khi hệ thống nhàn rỗi để củng cố học tập.
-- **Relationship Manager**: Ghi nhớ mức độ thân thiết và điều chỉnh giọng điệu theo thời gian.
-- **Decision Maker**: Ra quyết định dựa trên ngữ cảnh, cảm xúc và ưu tiên.
-
-### 👁️ Giác quan & Nhận thức (The Senses)
-- **Vision Agent**: Chụp màn hình thông minh, nhận diện ứng dụng đang chạy và ngữ cảnh làm việc.
-- **Audio Loopback**: Nghe âm thanh hệ thống và phản ứng với nhạc/video đang phát.
-- **Microphone Input**: Nhận diện giọng nói người dùng (STT) với độ trễ thấp.
-- **Media Watch**: Tự động phát hiện tiêu đề bài hát, video đang xem.
-
-### 🖐️ Tương tác & Thao tác (The Hands)
-- **Automation Agent**: Điều khiển chuột, bàn phím, mở ứng dụng, tìm kiếm file.
-- **Window Management**: Chuyển đổi cửa sổ, focus ứng dụng theo yêu cầu.
-- **Web Integration**: Tìm kiếm Google, YouTube, mở URL trực tiếp.
-- **File Explorer**: Đọc, tìm kiếm và quản lý tệp tin văn bản.
-
-### 💃 Hiện diện & Biểu đạt (The Body)
-- **3D Avatar Renderer**: Hiển thị mô hình VRM/Live2D ngay trên desktop với vật lý và lip-sync.
-- **Advanced TTS**: Giọng nói anime tự nhiên với cảm xúc (Vui, buồn, giận dữ...).
-- **Singing Engine**: Khả năng hát các bài hát đơn giản theo yêu cầu.
-- **Desktop Widget**: Khung chat trong suốt, luôn hiển thị (Always-on-top).
-
-### 🎛️ Dashboard & Điều khiển
-- **Web Control Panel**: Giao diện web để theo dõi trạng thái, cảm xúc, log và tinh chỉnh tham số.
-- **Real-time Monitoring**: Biểu đồ cảm xúc, CPU/RAM usage, hoạt động neural network.
-
-## 🏗️ Kiến trúc hệ thống
+## Architecture
 
 ```
-MyCompanion/
-├── companion/
-│   ├── brain/          # AI Core, Decision Maker, Internal Monologue
-│   ├── persona/        # Emotion Engine, Relationship Manager
-│   ├── senses/         # Vision, Audio, Media Watch
-│   ├── memory/         # Semantic DB, Dream System
-│   ├── tools/          # Automation, File Explorer, Web Search
-│   ├── expression/     # TTS, Avatar Renderer, Sing Engine
-│   ├── desktop/        # Chat Widget, Overlay
-│   └── dashboard/      # FastAPI Server, WebSocket
-├── web_dashboard/      # Giao diện điều khiển web
-├── assets/             # Models, Voices, Sounds
-└── run.py              # Entry point
+┌──────────────────────────────────────────────────────────────┐
+│                        app.py (Orchestrator)                  │
+├──────────┬──────────┬──────────┬──────────┬──────────────────┤
+│  Brain   │ Persona  │  Senses  │Expression│     Desktop      │
+│ ┌──────┐ │ ┌──────┐ │ ┌──────┐ │ ┌──────┐ │ ┌──────────────┐ │
+│ │Cortex│ │ │Emot. │ │ │Vision│ │ │ VTS  │ │ │  Chat Widget │ │
+│ │      │ │ │Matrix│ │ │Agent │ │ │Connct│ │ │  (PyQt6)     │ │
+│ ├──────┤ │ ├──────┤ │ ├──────┤ │ ├──────┤ │ ├──────────────┤ │
+│ │ API  │ │ │Prompt│ │ │ STT  │ │ │Expr. │ │ │   Spatial    │ │
+│ │Router│ │ │Engine│ │ │Pipe  │ │ │ Map  │ │ │   Engine     │ │
+│ ├──────┤ │ └──────┘ │ ├──────┤ │ ├──────┤ │ └──────────────┘ │
+│ │Rate  │ │          │ │Contxt│ │ │ TTS  │ │                  │
+│ │Limit │ │          │ │Reader│ │ │Engine│ │                  │
+│ ├──────┤ │          │ └──────┘ │ └──────┘ │                  │
+│ │Prior.│ │          │          │          │                  │
+│ │Queue │ │          │          │          │                  │
+│ ├──────┤ │          │          │          │                  │
+│ │Turn  │ │          │          │          │                  │
+│ │Ctrl  │ │          │          │          │                  │
+│ └──────┘ │          │          │          │                  │
+├──────────┴──────────┴──────────┴──────────┴──────────────────┤
+│  Dream Engine  │  Learning (SQLite)  │  Model Setup (#4711410)│
+└────────────────┴─────────────────────┴───────────────────────┘
 ```
 
-## 🚀 Cài đặt nhanh (Arch Linux)
+### 8 Core Pipelines
 
-### 1. Chuẩn bị môi trường
+| # | Pipeline | Module | Description |
+|---|----------|--------|-------------|
+| 1 | **AI Cortex** | `companion/brain/` | API routing (Groq→OpenAI→Anthropic), token-bucket rate limiter, priority queue, turn-taking |
+| 2 | **Senses** | `companion/senses/` | Screen capture via `mss`, STT via `sounddevice` + Groq Whisper, window tracking via `xdotool` |
+| 3 | **Voice & Animation** | `companion/expression/` | TTS via `edge-tts` (vi-VN-HoaiMyNeural), VTube Studio WebSocket bridge, lip sync |
+| 4 | **Emotional System** | `companion/persona/` | 3-layer emotion matrix (reflex/mood/core traits), dynamic prompt generator |
+| 5 | **Desktop UI** | `companion/desktop/` | PyQt6 frameless chat widget, spatial awareness, collision avoidance |
+| 6 | **Spatial Awareness** | `companion/desktop/` | Active window collision detection, auto-reposition, idle levitation |
+| 7 | **Dream Engine** | `companion/dream/` | Cognitive sleep after 10min idle, memory consolidation, context seed generation |
+| 8 | **Learning** | `companion/learning/` | SQLite + JSON memory store, regex fact extraction |
+
+### 3-Layer Emotional Matrix
+
+| Layer | Name | Behavior |
+|-------|------|----------|
+| 1 | Reflexive Reaction | Instantaneous response to events, decays in seconds |
+| 2 | Ambient Mood | Slow drift based on interaction sentiment over minutes |
+| 3 | Core Personality | **Immutable**: sassy, sharp-witted, curious, cute, deeply attached |
+
+### Event Priority System
+
+| Priority | Event Type | Weight |
+|----------|-----------|--------|
+| 0 (highest) | User Text Input | Immediate |
+| 1 | Voice Interrupt | High |
+| 2 | Screen Change | Medium |
+| 3 | Boredom Prompt | Low |
+
+---
+
+## Hardware Requirements
+
+| Component | Specification |
+|-----------|---------------|
+| CPU | AMD Ryzen 3 3000+ (or equivalent) |
+| GPU | AMD Radeon onboard (**NO CUDA**) |
+| RAM | 8GB DDR4 (framework uses ≤250MB) |
+| OS | **Arch Linux** with GNOME Desktop |
+| Display | X11 or Wayland |
+
+---
+
+## Installation (Arch Linux)
+
+### 1. System Dependencies
+
 ```bash
-# Cài đặt Python 3.10+ và các thư viện hệ thống
-sudo pacman -S python python-pip git base-devel
+# Core packages
+sudo pacman -S python python-pip python-virtualenv
 
-# Cài đặt dependencies cho PyQt6 và xử lý ảnh
-sudo pacman -S qt6-base qt6-webengine python-pyqt6 python-pillow python-mss
+# Audio
+sudo pacman -S mpv pulseaudio portaudio
 
-# Tạo virtual environment
-python -m venv venv
-source venv/bin/activate
+# Screen capture & window tracking
+sudo pacman -S xdotool scrot
+
+# Fonts (for PyQt6 Vietnamese rendering)
+sudo pacman -S noto-fonts noto-fonts-cjk
+
+# Optional: VTube Studio (install via Steam or standalone)
 ```
 
-### 2. Cài đặt dependencies Python
+### 2. Python Environment
+
 ```bash
+cd MyCompanion
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Cấu hình API Key
-Sao chép file mẫu và điền key:
+### 3. Configuration
+
 ```bash
 cp .env.example .env
-# Mở file .env và điền GROQ_API_KEY của bạn (Miễn phí tại https://console.groq.com)
+# Edit .env and add your API keys:
+#   GROQ_API_KEY=gsk_...        (required - free tier)
+#   OPENAI_API_KEY=sk-...       (optional fallback)
+#   ANTHROPIC_API_KEY=sk-ant-.. (optional fallback)
 ```
 
-### 4. Tải Model 3D (Tùy chọn)
-Đặt file `.vrm` hoặc `.vrm.glb` vào thư mục `assets/models/`.
-Bạn có thể tải model miễn phí từ [VRoid Hub](https://hub.vroid.com/).
+### 4. Run
 
-### 5. Chạy Miku
 ```bash
-python run.py
+# With GUI (default)
+python app.py
+
+# Headless mode (no display required)
+MYCOMPANION_HEADLESS=1 python app.py
 ```
-
-Sau khi khởi động:
-- **Chat Widget**: Xuất hiện trên màn hình để trò chuyện.
-- **Dashboard**: Truy cập tại `http://localhost:8000` để theo dõi và cấu hình.
-- **Avatar**: Sẽ xuất hiện nếu có model trong thư mục assets.
-
-## 📋 Yêu cầu hệ thống
-
-- **OS**: Arch Linux (khuyến nghị), Ubuntu 22.04+, Windows 10/11.
-- **CPU**: AMD Ryzen 3000 series trở lên (hoặc Intel tương đương).
-- **RAM**: Tối thiểu 8GB (khuyến nghị 16GB).
-- **GPU**: AMD Radeon hoặc NVIDIA (Hỗ trợ ROCm/CUDA tùy chọn, mặc định dùng Cloud AI).
-- **Internet**: Cần kết nối để gọi Groq API (Cloud LLM).
-
-## 🛠️ Phát triển thêm
-
-Dự án được thiết kế modular, bạn có thể dễ dàng thêm tính năng mới:
-1. Thêm module mới vào `companion/tools/` hoặc `companion/senses/`.
-2. Đăng ký event handler mới trong `companion/bot.py`.
-3. Mở rộng Dashboard bằng cách thêm endpoint vào `companion/dashboard/control_server.py`.
-
-## 🤝 Đóng góp
-
-Mọi đóng góp về code, ý tưởng hay báo lỗi đều được chào đón! Vui lòng tạo Issue hoặc Pull Request.
-
-## 📄 License
-
-Dự án mã nguồn mở dưới giấy phép MIT. Xem file [LICENSE](LICENSE) để biết chi tiết.
-
-## 🙏 Lời cảm ơn
-
-- Cảm ơn cộng đồng Open Source đã cung cấp các thư viện tuyệt vời.
-- Cảm ơn Groq cung cấp API miễn phí cho developer.
-- Cảm ơn các tác giả của VRM, Live2D và các công cụ liên quan.
 
 ---
-*Được phát triển với ❤️ bởi cộng đồng AI Enthusiasts.*
+
+## API Configuration
+
+### Groq (Primary - Free Tier)
+
+1. Sign up at https://console.groq.com
+2. Create an API key
+3. Set `GROQ_API_KEY` in `.env`
+4. Uses `llama-3.3-70b-versatile` by default
+
+### Fallback Providers
+
+The system automatically falls back through providers on rate limit (429) or errors:
+
+```
+Groq (free) → OpenAI → Anthropic
+```
+
+Each provider has its own token-bucket rate limiter to prevent 429 errors.
+
+---
+
+## Live2D Model (Booth #4711410)
+
+| Field | Value |
+|-------|-------|
+| Source | https://booth.pm/en/items/4711410 |
+| Type | Half-Body Live2D Model |
+| Art Credit | **@koahri1** |
+| Rigger Credit | **@MedL2D** |
+
+To use with VTube Studio:
+1. Purchase and download the model from Booth
+2. Import into VTube Studio
+3. Enable VTS in `.env`: `VTS_ENABLED=true`
+4. The connector auto-authenticates via WebSocket at `ws://127.0.0.1:8001`
+
+---
+
+## Project Structure
+
+```
+MyCompanion/
+├── app.py                              # Global Orchestrator
+├── requirements.txt                    # Pinned dependencies
+├── .env.example                        # API key template
+├── README.md                           # This file
+└── companion/
+    ├── brain/
+    │   ├── cortex.py                   # Central cognitive loop
+    │   ├── api_router.py               # Multi-provider LLM router
+    │   ├── rate_limiter.py             # Token-bucket rate limiter
+    │   ├── priority_queue.py           # Event priority queue
+    │   └── turn_controller.py          # Turn-taking orchestration
+    ├── persona/
+    │   ├── emotion_matrix.py           # 3-layer emotional state
+    │   └── prompt_engine.py            # Dynamic prompt builder
+    ├── senses/
+    │   ├── vision_agent.py             # Screen capture (mss)
+    │   ├── stt_pipeline.py             # Microphone STT (Groq Whisper)
+    │   └── context_reader.py           # Window tracking (xdotool)
+    ├── expression/
+    │   ├── vts_connector.py            # VTube Studio WebSocket
+    │   ├── vts_expression_map.py       # Emotion → Live2D params
+    │   └── tts_engine.py               # Text-to-Speech (edge-tts)
+    ├── desktop/
+    │   ├── chat_widget.py              # PyQt6 frameless chat UI
+    │   └── spatial_engine.py           # Collision avoidance
+    ├── dream/
+    │   └── dream_engine.py             # Cognitive sleep & consolidation
+    ├── learning/
+    │   ├── memory_store.py             # SQLite + JSON datastore
+    │   └── fact_extractor.py           # Personal fact mining
+    └── model_setup/
+        ├── vts_config.py               # Booth #4711410 VTS config
+        └── attribution.py              # License attribution
+```
+
+---
+
+## Troubleshooting
+
+### No audio output
+```bash
+# Check PulseAudio is running
+pulseaudio --check && echo "running" || pulseaudio --start
+
+# Test mpv
+echo "test" | mpv --no-video -
+```
+
+### xdotool not working (Wayland)
+```bash
+# xdotool requires X11. On Wayland, install xdotool compatibility:
+sudo pacman -S xdotool
+# Or switch to X11 session in GDM
+```
+
+### PyQt6 display issues
+```bash
+# Ensure DISPLAY is set
+echo $DISPLAY  # should show :0 or :1
+
+# For Wayland
+export QT_QPA_PLATFORM=wayland
+```
+
+### High memory usage
+```bash
+# Check companion memory usage
+ps aux | grep app.py
+# Should be under 250MB RSS
+```
+
+### Groq rate limits
+The built-in token-bucket limiter handles this automatically. If you see frequent 429 errors, the system will:
+1. Wait and retry with exponential backoff
+2. Fall back to OpenAI/Anthropic if configured
+
+---
+
+## License
+
+This project uses the Booth #4711410 Live2D model under the creator's license terms.
+- Art: @koahri1
+- Rigger: @MedL2D
+- Source: https://booth.pm/en/items/4711410
